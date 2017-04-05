@@ -1,0 +1,15 @@
+extern crate tinyVM;
+extern crate clap;
+
+use clap::{App, Arg};
+
+fn main()
+{
+
+    let args = App::new("TinyVM")
+        .about("Runs a tiny virtual machine")
+        .version("0.0.1")
+        .author("Kyle Galloway");
+
+    tinyVM::main(program);
+}
