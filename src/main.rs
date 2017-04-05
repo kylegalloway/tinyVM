@@ -3,7 +3,8 @@ extern crate clap;
 
 use clap::App;
 
-fn main() {
+fn main()
+{
 
     App::new("TinyVM")
         .about("Runs a tiny virtual machine")
