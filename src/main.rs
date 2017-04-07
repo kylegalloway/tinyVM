@@ -1,15 +1,25 @@
 extern crate tiny_vm;
 extern crate clap;
 
-use clap::App;
+use clap::{App, Arg};
 
 fn main()
 {
 
-    App::new("TinyVM")
+    let args = App::new("TinyVM")
         .about("Runs a tiny virtual machine")
         .version("0.0.1")
-        .author("Kyle Galloway");
+        .author("Kyle Galloway")
+        .arg(Arg::with_name("file")
+                 .help("the program file to use")
+                 .index(1)
+                 .required(true)
+                 .short("f")
+                 .long("file"))
+        .get_matches();
 
-    tiny_vm::main();
+    let program = args.value_of("file").unwrap();
+
+
+    tiny_vm::main(String::from(program));
 }

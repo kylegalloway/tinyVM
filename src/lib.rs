@@ -1,5 +1,4 @@
-///
-///     A more advanced version of the VM
+use std::fs::File;
 ///
 /// |=============================== INSTRUCTION ================================|
 ///  COMMAND                VALUE             DESCRself.ipTION
@@ -31,21 +30,32 @@
 ///  NOP                      16       :: do nothing
 ///
 
-pub fn main()
+use std::io;
+use std::io::BufReader;
+use std::io::prelude::*;
+
+pub fn main(file: String)
 {
     let stack_size = 256;
     let register_size = 13;
     let instruction_count = 10;
     let instruction_space = 4;
+
+    let f = File::open(file).expect("Bad File");
+    let reader = BufReader::new(f);
+    let mut program: Vec<u32> = Vec::new();
+
+    for line in reader.lines()
+    {
+        let mut new: Vec<u32> = line.expect("Bad line")
+            .split(" ")
+            .map(|x| x.parse::<u32>().expect("Not an integer!"))
+            .collect();
+        program.extend(new);
+    }
+
     let mut vm = Vm::new(stack_size, register_size, instruction_count, instruction_space);
 
-    let program: Vec<u32> = vec![Instruction::PSH as u32,
-                                 5,
-                                 Instruction::PSH as u32,
-                                 6,
-                                 Instruction::ADD as u32,
-                                 Instruction::POP as u32,
-                                 Instruction::HLT as u32];
 
     while vm.is_running
     {
@@ -135,7 +145,11 @@ struct Vm
 
 impl Vm
 {
-    fn new(stack_size: usize, register_size: usize, instruction_count: u32, instruction_space: u32) -> Vm
+    fn new(stack_size: usize,
+           register_size: usize,
+           instruction_count: u32,
+           instruction_space: u32)
+           -> Vm
     {
         Vm {
             is_running: true,
@@ -158,15 +172,18 @@ impl Vm
         program[self.ip as usize]
     }
 
-    fn print_stack(&mut self) {
+    fn print_stack(&mut self)
+    {
         println!("Stack:\n{:?}\n", self.stack);
     }
 
-    fn print_registers(&mut self) {
+    fn print_registers(&mut self)
+    {
         println!("Registers:\n{:?}\n", self.registers);
     }
 
-    fn find_empty_register(&mut self) -> Registers {
+    fn find_empty_register(&mut self) -> Registers
+    {
         return Registers::EX;
     }
 
@@ -188,13 +205,18 @@ impl Vm
             {
                 self.sp = self.sp + 1;
                 self.ip = self.ip + 1;
-                self.stack[self.registers[SP as usize] as usize] = program[self.registers[IP as usize] as usize];
-                println!("{} pushed to stack[{}]\n", self.stack[self.registers[SP as usize] as usize], self.sp);
+                self.stack[self.registers[SP as usize] as usize] = program[self.registers[IP as usize] as
+                usize];
+                println!("{} pushed to stack[{}]\n",
+                         self.stack[self.registers[SP as usize] as usize],
+                         self.sp);
 
             },
             POP =>
             {
-                println!("{} popped from stack[{}]\n", self.stack[self.registers[SP as usize] as usize], self.sp);
+                println!("{} popped from stack[{}]\n",
+                         self.stack[self.registers[SP as usize] as usize],
+                         self.sp);
                 self.sp = self.sp - 1;
 
             },
@@ -215,7 +237,9 @@ impl Vm
                          self.registers[B as usize],
                          self.registers[A as usize],
                          self.registers[C as usize]);
-                println!("{} moved to stack[{}]\n", self.stack[self.registers[SP as usize] as usize], self.sp);
+                println!("{} moved to stack[{}]\n",
+                         self.stack[self.registers[SP as usize] as usize],
+                         self.sp);
 
             },
             MUL =>
@@ -235,7 +259,9 @@ impl Vm
                          self.registers[B as usize],
                          self.registers[A as usize],
                          self.registers[C as usize]);
-                println!("{} moved to stack[{}]\n", self.stack[self.registers[SP as usize] as usize], self.sp);
+                println!("{} moved to stack[{}]\n",
+                         self.stack[self.registers[SP as usize] as usize],
+                         self.sp);
 
             },
             DIV =>
@@ -255,7 +281,9 @@ impl Vm
                          self.registers[B as usize],
                          self.registers[A as usize],
                          self.registers[C as usize]);
-                println!("{} moved to stack[{}]\n", self.stack[self.registers[SP as usize] as usize], self.sp);
+                println!("{} moved to stack[{}]\n",
+                         self.stack[self.registers[SP as usize] as usize],
+                         self.sp);
 
             },
             SUB =>
@@ -275,24 +303,30 @@ impl Vm
                          self.registers[B as usize],
                          self.registers[A as usize],
                          self.registers[C as usize]);
-                println!("{} moved to stack[{}]\n", self.stack[self.registers[SP as usize] as usize], self.sp);
+                println!("{} moved to stack[{}]\n",
+                         self.stack[self.registers[SP as usize] as usize],
+                         self.sp);
 
             },
             SLT =>
             {
                 self.sp = self.sp - 1;
-                self.stack[self.registers[SP as usize] as usize] = (self.stack[(self.sp + 1) as usize] < self.stack[self.registers[SP as usize] as usize]) as u32;
+                self.stack[self.registers[SP as usize] as usize] =
+                    (self.stack[(self.sp + 1) as usize] <
+                     self.stack[self.registers[SP as usize] as usize]) as u32;
 
             },
             MOV =>
             {
-                self.registers[program[(self.ip + 2) as usize] as usize] = self.registers[program[(self.ip + 1) as usize] as usize];
+                self.registers[program[(self.ip + 2) as usize] as usize] = self.registers[program[(self.ip + 1) as usize] as
+                usize];
                 self.ip = self.ip + 2;
 
             },
             SET =>
             {
-                self.registers[program[(self.ip + 1) as usize] as usize] = program[(self.ip + 2) as usize];
+                self.registers[program[(self.ip + 1) as usize] as usize] = program[(self.ip + 2) as
+                usize];
                 self.ip = self.ip + 2;
 
             },
@@ -304,7 +338,8 @@ impl Vm
             },
             IF =>
             {
-                if self.registers[program[(self.ip + 1) as usize] as usize] == program[(self.ip + 2) as usize]
+                if self.registers[program[(self.ip + 1) as usize] as usize] ==
+                   program[(self.ip + 2) as usize]
                 {
                     self.registers[(self.ip + 1) as usize] = program[(self.ip + 3) as usize];
                 }
@@ -313,7 +348,8 @@ impl Vm
             },
             IFN =>
             {
-                if self.registers[program[(self.ip + 1) as usize] as usize] != program[(self.ip + 2) as usize]
+                if self.registers[program[(self.ip + 1) as usize] as usize] !=
+                   program[(self.ip + 2) as usize]
                 {
                     self.registers[EX as usize] = program[(self.ip + 3) as usize];
                     let ip_: usize = self.registers[IP as usize] as usize;
@@ -328,26 +364,32 @@ impl Vm
             {
                 self.sp = self.sp + 1;
                 self.ip = self.ip + 1;
-                self.stack[self.registers[SP as usize] as usize] = self.registers[program[self.registers[IP as usize] as usize] as usize];
+                self.stack[self.registers[SP as usize] as usize] = self.registers[program[self.registers[IP as usize] as usize] as
+                usize];
 
             },
             GPT =>
             {
-                self.registers[program[(self.ip + 1) as usize] as usize] = self.stack[self.registers[SP as usize] as usize];
-                println!("{} loaded into stack[{}]\n", self.stack[self.registers[SP as usize] as usize], self.sp);
+                self.registers[program[(self.ip + 1) as usize] as usize] = self.stack[self.registers[SP as usize] as
+                usize];
+                println!("{} loaded into stack[{}]\n",
+                         self.stack[self.registers[SP as usize] as usize],
+                         self.sp);
                 self.ip = self.ip + 1;
 
             },
             GOTO =>
             {
-                if program[(self.ip + 1) as usize] > 0 && program[(self.ip + 1) as usize] < self.instruction_count
+                if program[(self.ip + 1) as usize] > 0 &&
+                   program[(self.ip + 1) as usize] < self.instruction_count
                 {
                     self.ip = program[(self.ip + 1) as usize];
                     println!("branch to instruction {}\n", program[(self.ip + 1) as usize]);
                 }
                 else
                 {
-                    println!("branch to instruction {} not completed.\n", program[(self.ip + 1) as usize]);
+                    println!("branch to instruction {} not completed.\n",
+                             program[(self.ip + 1) as usize]);
                     println!("{} not not i range.\n", program[(self.ip + 1) as usize]);
                 }
             },
