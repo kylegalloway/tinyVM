@@ -1,4 +1,3 @@
-use std::fs::File;
 ///
 /// |=============================== INSTRUCTION ================================|
 ///  COMMAND                VALUE             DESCRself.ipTION
@@ -30,7 +29,7 @@ use std::fs::File;
 ///  NOP                      16       :: do nothing
 ///
 
-use std::io;
+use std::fs::File;
 use std::io::BufReader;
 use std::io::prelude::*;
 
@@ -47,7 +46,7 @@ pub fn main(file: String)
 
     for line in reader.lines()
     {
-        let mut new: Vec<u32> = line.expect("Bad line")
+        let new: Vec<u32> = line.expect("Bad line")
             .split(" ")
             .map(|x| x.parse::<u32>().expect("Not an integer!"))
             .collect();
@@ -62,6 +61,7 @@ pub fn main(file: String)
         let instruction: Instruction = Instruction::from(vm.fetch(&program));
         vm.eval(instruction, &program);
         vm.cycle();
+        // vm.print_state();
     }
 }
 
@@ -115,6 +115,7 @@ impl From<u32> for Instruction
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 enum Registers
 {
     A,
@@ -172,19 +173,16 @@ impl Vm
         program[self.ip as usize]
     }
 
-    fn print_stack(&mut self)
+    fn print_state(&mut self)
     {
-        println!("Stack:\n{:?}\n", self.stack);
-    }
-
-    fn print_registers(&mut self)
-    {
-        println!("Registers:\n{:?}\n", self.registers);
-    }
-
-    fn find_empty_register(&mut self) -> Registers
-    {
-        return Registers::EX;
+        println!("Is Running: {}\n", self.is_running);
+        println!("IP: {}\n", self.ip);
+        println!("SP: {}\n", self.sp);
+        // println!("Stack: {}\n", self.stack);
+        // println!("Registers: {}\n", self.registers);
+        // println!("Instruction Count: {}\n", self.instruction_count);
+        // println!("Instruction Space: {}\n", self.instruction_space);
+        
     }
 
     fn eval(&mut self, instruction: Instruction, program: &Vec<u32>)
@@ -197,123 +195,120 @@ impl Vm
             {
                 self.is_running = false;
                 println!("Finished Execution\n");
-                // self.print_stack();
-                // self.print_registers();
 
             },
             PSH =>
             {
-                self.sp = self.sp + 1;
-                self.ip = self.ip + 1;
-                self.stack[self.registers[SP as usize] as usize] = program[self.registers[IP as usize] as
-                usize];
+                self.sp += 1;
+                self.ip += 1;
+                self.stack[self.sp as usize] = program[self.ip as usize];
                 println!("{} pushed to stack[{}]\n",
-                         self.stack[self.registers[SP as usize] as usize],
+                         self.stack[self.sp as usize],
                          self.sp);
 
             },
             POP =>
             {
                 println!("{} popped from stack[{}]\n",
-                         self.stack[self.registers[SP as usize] as usize],
+                         self.stack[self.sp as usize],
                          self.sp);
                 self.sp = self.sp - 1;
 
             },
             ADD =>
             {
-                self.registers[A as usize] = self.stack[self.registers[SP as usize] as usize];
+                self.registers[A as usize] = self.stack[self.sp as usize];
                 self.sp = self.sp - 1;
 
-                self.registers[B as usize] = self.stack[self.registers[SP as usize] as usize];
+                self.registers[B as usize] = self.stack[self.sp as usize];
                 /* self.sp = self.sp - 1; */
 
                 self.registers[C as usize] = self.registers[B as usize] +
                                              self.registers[A as usize];
 
                 /* self.sp = self.sp + 1; */
-                self.stack[self.registers[SP as usize] as usize] = self.registers[C as usize];
+                self.stack[self.sp as usize] = self.registers[C as usize];
                 println!("{} + {} = {}\n",
                          self.registers[B as usize],
                          self.registers[A as usize],
                          self.registers[C as usize]);
                 println!("{} moved to stack[{}]\n",
-                         self.stack[self.registers[SP as usize] as usize],
+                         self.stack[self.sp as usize],
                          self.sp);
 
             },
             MUL =>
             {
-                self.registers[A as usize] = self.stack[self.registers[SP as usize] as usize];
+                self.registers[A as usize] = self.stack[self.sp as usize];
                 self.sp = self.sp - 1;
 
-                self.registers[B as usize] = self.stack[self.registers[SP as usize] as usize];
+                self.registers[B as usize] = self.stack[self.sp as usize];
                 /*self.sp = self.sp - 1;*/
 
                 self.registers[C as usize] = self.registers[B as usize] *
                                              self.registers[A as usize];
 
                 /*self.sp = self.sp + 1;*/
-                self.stack[self.registers[SP as usize] as usize] = self.registers[C as usize];
+                self.stack[self.sp as usize] = self.registers[C as usize];
                 println!("{} * {} = {}\n",
                          self.registers[B as usize],
                          self.registers[A as usize],
                          self.registers[C as usize]);
                 println!("{} moved to stack[{}]\n",
-                         self.stack[self.registers[SP as usize] as usize],
+                         self.stack[self.sp as usize],
                          self.sp);
 
             },
             DIV =>
             {
-                self.registers[A as usize] = self.stack[self.registers[SP as usize] as usize];
+                self.registers[A as usize] = self.stack[self.sp as usize];
                 self.sp = self.sp - 1;
 
-                self.registers[B as usize] = self.stack[self.registers[SP as usize] as usize];
+                self.registers[B as usize] = self.stack[self.sp as usize];
                 /* self.sp = self.sp - 1;*/
 
                 self.registers[C as usize] = self.registers[B as usize] /
                                              self.registers[A as usize];
 
                 /* self.sp = self.sp + 1; */
-                self.stack[self.registers[SP as usize] as usize] = self.registers[C as usize];
+                self.stack[self.sp as usize] = self.registers[C as usize];
                 println!("{} / {} = {}\n",
                          self.registers[B as usize],
                          self.registers[A as usize],
                          self.registers[C as usize]);
                 println!("{} moved to stack[{}]\n",
-                         self.stack[self.registers[SP as usize] as usize],
+                         self.stack[self.sp as usize],
                          self.sp);
 
             },
             SUB =>
             {
-                self.registers[A as usize] = self.stack[self.registers[SP as usize] as usize];
+                self.registers[A as usize] = self.stack[self.sp as usize];
                 self.sp = self.sp - 1;
 
-                self.registers[B as usize] = self.stack[self.registers[SP as usize] as usize];
+                self.registers[B as usize] = self.stack[self.sp as usize];
                 /* self.sp = self.sp - 1; */
 
                 self.registers[C as usize] = self.registers[B as usize] -
                                              self.registers[A as usize];
 
                 /* self.sp = self.sp + 1; */
-                self.stack[self.registers[SP as usize] as usize] = self.registers[C as usize];
+                self.stack[self.sp as usize] = self.registers[C as usize];
                 println!("{} - {} = {}\n",
                          self.registers[B as usize],
                          self.registers[A as usize],
                          self.registers[C as usize]);
                 println!("{} moved to stack[{}]\n",
-                         self.stack[self.registers[SP as usize] as usize],
+                         self.stack[self.sp as usize],
                          self.sp);
 
             },
             SLT =>
             {
                 self.sp = self.sp - 1;
-                self.stack[self.registers[SP as usize] as usize] =
+                self.stack[self.sp as usize] =
                     (self.stack[(self.sp + 1) as usize] <
-                     self.stack[self.registers[SP as usize] as usize]) as u32;
+                     self.stack[self.sp as usize]) as u32;
 
             },
             MOV =>
@@ -352,7 +347,7 @@ impl Vm
                    program[(self.ip + 2) as usize]
                 {
                     self.registers[EX as usize] = program[(self.ip + 3) as usize];
-                    let ip_: usize = self.registers[IP as usize] as usize;
+                    let ip_: usize = self.ip as usize;
                     self.registers[ip_] = self.registers[EX as usize];
                 }
                 else
@@ -364,16 +359,16 @@ impl Vm
             {
                 self.sp = self.sp + 1;
                 self.ip = self.ip + 1;
-                self.stack[self.registers[SP as usize] as usize] = self.registers[program[self.registers[IP as usize] as usize] as
+                self.stack[self.sp as usize] = self.registers[program[self.ip as usize] as
                 usize];
 
             },
             GPT =>
             {
-                self.registers[program[(self.ip + 1) as usize] as usize] = self.stack[self.registers[SP as usize] as
+                self.registers[program[(self.ip + 1) as usize] as usize] = self.stack[self.sp as
                 usize];
                 println!("{} loaded into stack[{}]\n",
-                         self.stack[self.registers[SP as usize] as usize],
+                         self.stack[self.sp as usize],
                          self.sp);
                 self.ip = self.ip + 1;
 
